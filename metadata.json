@@ -1,0 +1,16 @@
+{
+    "uuid": "auto-screen-brightness@popov895.ukr.net",
+    "name": "Auto Screen Brightness",
+    "description": "Automatically switch the screen brightness depending on the power supply status",
+    "url": "https://github.com/popov895/auto-screen-brightness",
+    "version": 1,
+    "shell-version": ["42", "43", "44"],
+    "session-modes": [
+        "user",
+        "unlock-dialog"
+    ],
+    "settings-schema": "org.gnome.shell.extensions.auto-screen-brightness",
+    "donations": {
+        "custom": "https://github.com/popov895/popov895"
+    }
+}

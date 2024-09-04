@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema id="org.gnome.shell.extensions.auto-screen-brightness" path="/org/gnome/shell/extensions/auto-screen-brightness/">
+        <key name="brightness-ac" type="i">
+            <range min="0" max="100"/>
+            <default>50</default>
+        </key>
+        <key name="brightness-battery" type="i">
+            <range min="0" max="100"/>
+            <default>35</default>
+        </key>
+    </schema>
+</schemalist>
