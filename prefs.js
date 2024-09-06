@@ -1,75 +1,74 @@
 'use strict';
 
-const { Adw, GObject, Gtk } = imports.gi;
+import Adw from 'gi://Adw';
+import GObject from 'gi://GObject';
+import Gtk from 'gi://Gtk';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
-const { Preferences } = Extension.imports.lib.preferences;
+import { ExtensionPreferences, gettext, pgettext  } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { Preferences } from './lib/preferences.js';
 
 const _ = (text, context) => {
-    return context ? ExtensionUtils.pgettext(context, text) : ExtensionUtils.gettext(text);
+    return context ? pgettext(context, text) : gettext(text);
 };
 
-var init = () => {
-    ExtensionUtils.initTranslations(Extension.uuid);
-};
+export default class extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        window._preferences = new Preferences(this);
+        window.connect(`close-request`, () => {
+            window._preferences.destroy();
+        });
 
-var fillPreferencesWindow = (window) => {
-    window._preferences = new Preferences();
-    window.connect(`close-request`, () => {
-        window._preferences.destroy();
-    });
+        const brightnessOnAcSpinBox = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 100,
+                step_increment: 1,
+            }),
+            valign: Gtk.Align.CENTER,
+        });
+        window._preferences.bind_property(
+            `brightnessOnAc`,
+            brightnessOnAcSpinBox,
+            `value`,
+            GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
+        );
 
-    const brightnessOnAcSpinBox = new Gtk.SpinButton({
-        adjustment: new Gtk.Adjustment({
-            lower: 0,
-            upper: 100,
-            step_increment: 1,
-        }),
-        valign: Gtk.Align.CENTER,
-    });
-    window._preferences.bind_property(
-        `brightnessOnAc`,
-        brightnessOnAcSpinBox,
-        `value`,
-        GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
-    );
+        const brightnessOnAcRow = new Adw.ActionRow({
+            activatable_widget: brightnessOnAcSpinBox,
+            title: _(`On AC`),
+        });
+        brightnessOnAcRow.add_suffix(brightnessOnAcSpinBox);
 
-    const brightnessOnAcRow = new Adw.ActionRow({
-        activatable_widget: brightnessOnAcSpinBox,
-        title: _(`On AC`),
-    });
-    brightnessOnAcRow.add_suffix(brightnessOnAcSpinBox);
+        const brightnessOnBatterySpinBox = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({
+                lower: 0,
+                upper: 100,
+                step_increment: 1,
+            }),
+            valign: Gtk.Align.CENTER,
+        });
+        window._preferences.bind_property(
+            `brightnessOnBattery`,
+            brightnessOnBatterySpinBox,
+            `value`,
+            GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
+        );
 
-    const brightnessOnBatterySpinBox = new Gtk.SpinButton({
-        adjustment: new Gtk.Adjustment({
-            lower: 0,
-            upper: 100,
-            step_increment: 1,
-        }),
-        valign: Gtk.Align.CENTER,
-    });
-    window._preferences.bind_property(
-        `brightnessOnBattery`,
-        brightnessOnBatterySpinBox,
-        `value`,
-        GObject.BindingFlags.BIDIRECTIONAL | GObject.BindingFlags.SYNC_CREATE
-    );
+        const brightnessOnBatteryRow = new Adw.ActionRow({
+            activatable_widget: brightnessOnBatterySpinBox,
+            title: _(`On Battery`),
+        });
+        brightnessOnBatteryRow.add_suffix(brightnessOnBatterySpinBox);
 
-    const brightnessOnBatteryRow = new Adw.ActionRow({
-        activatable_widget: brightnessOnBatterySpinBox,
-        title: _(`On Battery`),
-    });
-    brightnessOnBatteryRow.add_suffix(brightnessOnBatterySpinBox);
+        const screenBrightnessGroup = new Adw.PreferencesGroup({
+            title: _(`Screen Brightness`),
+        });
+        screenBrightnessGroup.add(brightnessOnAcRow);
+        screenBrightnessGroup.add(brightnessOnBatteryRow);
 
-    const screenBrightnessGroup = new Adw.PreferencesGroup({
-        title: _(`Screen Brightness`),
-    });
-    screenBrightnessGroup.add(brightnessOnAcRow);
-    screenBrightnessGroup.add(brightnessOnBatteryRow);
+        const page = new Adw.PreferencesPage();
+        page.add(screenBrightnessGroup);
 
-    const page = new Adw.PreferencesPage();
-    page.add(screenBrightnessGroup);
-
-    window.add(page);
-};
+        window.add(page);
+    }
+}

@@ -1,11 +1,10 @@
 'use strict';
 
-const { Gio } = imports.gi;
-const { loadInterfaceXML } = imports.misc.fileUtils;
+import Gio from 'gi://Gio';
+import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Extension = ExtensionUtils.getCurrentExtension();
-const { Preferences } = Extension.imports.lib.preferences;
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Preferences } from './lib/preferences.js';
 
 const BrightnessInterface = loadInterfaceXML(`org.gnome.SettingsDaemon.Power.Screen`);
 const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(BrightnessInterface);
@@ -13,9 +12,9 @@ const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(BrightnessInterface);
 const PowerManagerInterface = loadInterfaceXML(`org.freedesktop.UPower`);
 const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(PowerManagerInterface);
 
-class ExtensionImpl {
+export default class extends Extension {
     async enable() {
-        this._preferences = new Preferences();
+        this._preferences = new Preferences(this);
         this._preferences.connectObject(`notify::brightnessOnAc`, () => {
             if (this._powerManagerProxy?.OnBattery === false) {
                 this._updateScreenBrightness();
@@ -93,7 +92,3 @@ class ExtensionImpl {
         }
     }
 }
-
-var init = () => {
-    return new ExtensionImpl();
-};
