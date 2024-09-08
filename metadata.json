@@ -3,7 +3,7 @@
     "name": "Auto Screen Brightness",
     "description": "Automatically switch the screen brightness depending on the power supply status",
     "url": "https://github.com/popov895/auto-screen-brightness",
-    "version": 1,
+    "version": 2,
     "shell-version": ["42", "43", "44"],
     "session-modes": [
         "user",
