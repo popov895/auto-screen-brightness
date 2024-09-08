@@ -7,14 +7,11 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const { Preferences } = Extension.imports.lib.preferences;
 
-const BrightnessInterface = loadInterfaceXML(`org.gnome.SettingsDaemon.Power.Screen`);
-const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(BrightnessInterface);
-
-const PowerManagerInterface = loadInterfaceXML(`org.freedesktop.UPower`);
-const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(PowerManagerInterface);
+const brightnessInterfaceXml = loadInterfaceXML(`org.gnome.SettingsDaemon.Power.Screen`);
+const powerManagerInterfaceXml = loadInterfaceXML(`org.freedesktop.UPower`);
 
 class ExtensionImpl {
-    async enable() {
+    enable() {
         this._preferences = new Preferences();
         this._preferences.connectObject(`notify::brightnessOnAc`, () => {
             if (this._powerManagerProxy?.OnBattery === false) {
@@ -28,41 +25,34 @@ class ExtensionImpl {
         }, this);
 
         try {
-            this._brightnessProxy = await new Promise((resolve, reject) => {
-                new BrightnessProxy(
-                    Gio.DBus.session,
-                    `org.gnome.SettingsDaemon.Power`,
-                    `/org/gnome/SettingsDaemon/Power`,
-                    (proxy, error) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(proxy);
-                        }
-                    }
-                );
+            const brightnessInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(brightnessInterfaceXml);
+            this._brightnessProxy = new Gio.DBusProxy({
+                g_bus_type: Gio.BusType.SESSION,
+                g_name: `org.gnome.SettingsDaemon.Power`,
+                g_object_path: `/org/gnome/SettingsDaemon/Power`,
+                g_interface_info: brightnessInterfaceInfo,
+                g_interface_name: brightnessInterfaceInfo.name,
+                g_flags: Gio.DBusProxyFlags.NONE,
             });
+            this._brightnessProxy.init(null);
 
-            this._powerManagerProxy = await new Promise((resolve, reject) => {
-                new PowerManagerProxy(
-                    Gio.DBus.system,
-                    `org.freedesktop.UPower`,
-                    `/org/freedesktop/UPower`,
-                    (proxy, error) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(proxy);
-                        }
-                    }
-                );
+            const powerManagerInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(powerManagerInterfaceXml);
+            this._powerManagerProxy = new Gio.DBusProxy({
+                g_bus_type: Gio.BusType.SYSTEM,
+                g_name: `org.freedesktop.UPower`,
+                g_object_path: `/org/freedesktop/UPower`,
+                g_interface_info: powerManagerInterfaceInfo,
+                g_interface_name: powerManagerInterfaceInfo.name,
+                g_flags: Gio.DBusProxyFlags.NONE,
             });
-            this._updateScreenBrightness();
+            this._powerManagerProxy.init(null);
             this._powerManagerProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
                 if (properties.lookup_value(`OnBattery`, null) !== null) {
                     this._updateScreenBrightness();
                 }
             }, this);
+
+            this._updateScreenBrightness();
         } catch (error) {
             console.error(`${Extension.uuid}:`, error);
         }
