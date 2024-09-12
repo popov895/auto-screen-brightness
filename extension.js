@@ -52,7 +52,16 @@ class ExtensionImpl {
                 }
             }, this);
 
-            this._updateScreenBrightness();
+            if (this._brightnessProxy.Brightness !== null) {
+                this._updateScreenBrightness();
+            } else {
+                this._brightnessProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
+                    if (properties.lookup_value(`Brightness`, null) !== null) {
+                        this._brightnessProxy.disconnectObject(this);
+                        this._updateScreenBrightness();
+                    }
+                }, this);
+            }
         } catch (error) {
             console.error(`${Extension.uuid}:`, error);
         }
@@ -64,6 +73,7 @@ class ExtensionImpl {
         this._powerManagerProxy?.disconnectObject(this);
         delete this._powerManagerProxy;
 
+        this._brightnessProxy?.disconnectObject(this);
         delete this._brightnessProxy;
 
         this._preferences.disconnectObject(this);
@@ -72,10 +82,6 @@ class ExtensionImpl {
     }
 
     _updateScreenBrightness() {
-        if (!this._brightnessProxy || !this._powerManagerProxy) {
-            return;
-        }
-
         if (this._powerManagerProxy.OnBattery) {
             this._brightnessProxy.Brightness = this._preferences.brightnessOnBattery;
         } else {
