@@ -1,6 +1,6 @@
 'use strict';
 
-const { Gio } = imports.gi;
+const { Gio, GLib } = imports.gi;
 const { loadInterfaceXML } = imports.misc.fileUtils;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -24,47 +24,55 @@ class ExtensionImpl {
             }
         }, this);
 
-        try {
-            const brightnessInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(brightnessInterfaceXml);
-            this._brightnessProxy = new Gio.DBusProxy({
-                g_bus_type: Gio.BusType.SESSION,
-                g_name: `org.gnome.SettingsDaemon.Power`,
-                g_object_path: `/org/gnome/SettingsDaemon/Power`,
-                g_interface_info: brightnessInterfaceInfo,
-                g_interface_name: brightnessInterfaceInfo.name,
-                g_flags: Gio.DBusProxyFlags.NONE,
-            });
-            this._brightnessProxy.init(null);
-
-            const powerManagerInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(powerManagerInterfaceXml);
-            this._powerManagerProxy = new Gio.DBusProxy({
-                g_bus_type: Gio.BusType.SYSTEM,
-                g_name: `org.freedesktop.UPower`,
-                g_object_path: `/org/freedesktop/UPower`,
-                g_interface_info: powerManagerInterfaceInfo,
-                g_interface_name: powerManagerInterfaceInfo.name,
-                g_flags: Gio.DBusProxyFlags.NONE,
-            });
-            this._powerManagerProxy.init(null);
-            this._powerManagerProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
-                if (properties.lookup_value(`OnBattery`, null) !== null) {
-                    this._updateScreenBrightness();
-                }
-            }, this);
-
-            if (this._brightnessProxy.Brightness !== null) {
+        const brightnessInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(brightnessInterfaceXml);
+        this._brightnessProxy = new Gio.DBusProxy({
+            g_bus_type: Gio.BusType.SESSION,
+            g_name: `org.gnome.SettingsDaemon.Power`,
+            g_object_path: `/org/gnome/SettingsDaemon/Power`,
+            g_interface_info: brightnessInterfaceInfo,
+            g_interface_name: brightnessInterfaceInfo.name,
+            g_flags: Gio.DBusProxyFlags.NONE,
+        });
+        this._brightnessProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
+            if (properties.lookup_value(`Brightness`, null) !== null) {
+                this._brightnessProxy.disconnectObject(this);
                 this._updateScreenBrightness();
-            } else {
-                this._brightnessProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
-                    if (properties.lookup_value(`Brightness`, null) !== null) {
-                        this._brightnessProxy.disconnectObject(this);
-                        this._updateScreenBrightness();
-                    }
-                }, this);
             }
-        } catch (error) {
-            console.error(`${Extension.uuid}:`, error);
-        }
+        }, this);
+
+        const powerManagerInterfaceInfo = Gio.DBusInterfaceInfo.new_for_xml(powerManagerInterfaceXml);
+        this._powerManagerProxy = new Gio.DBusProxy({
+            g_bus_type: Gio.BusType.SYSTEM,
+            g_name: `org.freedesktop.UPower`,
+            g_object_path: `/org/freedesktop/UPower`,
+            g_interface_info: powerManagerInterfaceInfo,
+            g_interface_name: powerManagerInterfaceInfo.name,
+            g_flags: Gio.DBusProxyFlags.NONE,
+        });
+        this._powerManagerProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
+            if (properties.lookup_value(`OnBattery`, null) !== null) {
+                this._updateScreenBrightness();
+            }
+        }, this);
+
+        this._brightnessProxy.init_async(GLib.PRIORITY_DEFAULT, null, (proxy, result) => {
+            try {
+                if (!proxy.init_finish(result)) {
+                    throw new Error(`Failed to connect to the ${proxy.g_interface_name} D-Bus interface`);
+                }
+            } catch (error) {
+                this._logError(error);
+            }
+        });
+        this._powerManagerProxy.init_async(GLib.PRIORITY_DEFAULT, null, (proxy, result) => {
+            try {
+                if (!proxy.init_finish(result)) {
+                    throw new Error(`Failed to connect to the ${proxy.g_interface_name} D-Bus interface`);
+                }
+            } catch (error) {
+                this._logError(error);
+            }
+        });
     }
 
     disable() {
@@ -82,11 +90,19 @@ class ExtensionImpl {
     }
 
     _updateScreenBrightness() {
+        if (this._brightnessProxy.Brightness === null || this._powerManagerProxy.OnBattery === null) {
+            return;
+        }
+
         if (this._powerManagerProxy.OnBattery) {
             this._brightnessProxy.Brightness = this._preferences.brightnessOnBattery;
         } else {
             this._brightnessProxy.Brightness = this._preferences.brightnessOnAc;
         }
+    }
+
+    _logError(error) {
+        console.error(`${Extension.uuid}:`, error);
     }
 }
 
