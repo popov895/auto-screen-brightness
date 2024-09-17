@@ -4,7 +4,7 @@
     "description": "Automatically switch the screen brightness depending on the power supply status",
     "url": "https://github.com/popov895/auto-screen-brightness",
     "version": 4,
-    "shell-version": ["45", "46"],
+    "shell-version": ["45", "46", "47"],
     "session-modes": [
         "user",
         "unlock-dialog"
