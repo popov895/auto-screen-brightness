@@ -78,10 +78,10 @@ class ExtensionImpl {
     disable() {
         // This extension uses the 'unlock-dialog' session mode to be able
         // to switch the screen brightness when the screen is locked.
-        this._powerManagerProxy?.disconnectObject(this);
+        this._powerManagerProxy.disconnectObject(this);
         delete this._powerManagerProxy;
 
-        this._brightnessProxy?.disconnectObject(this);
+        this._brightnessProxy.disconnectObject(this);
         delete this._brightnessProxy;
 
         this._preferences.disconnectObject(this);
