@@ -6,6 +6,7 @@ const { loadInterfaceXML } = imports.misc.fileUtils;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const { Preferences } = Extension.imports.lib.preferences;
+const { logError } = Extension.imports.lib.utils;
 
 const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
     loadInterfaceXML(`org.gnome.SettingsDaemon.Power.Screen`)
@@ -33,9 +34,9 @@ class ExtensionImpl {
             Gio.DBus.session,
             `org.gnome.SettingsDaemon.Power`,
             `/org/gnome/SettingsDaemon/Power`,
-            (...[, error]) => {
+            (proxy, error) => {
                 if (error) {
-                    this._logError(error);
+                    logError(`Failed to connect to the ${proxy.g_interface_name} D-Bus interface`, error);
                 }
             }
         );
@@ -50,9 +51,9 @@ class ExtensionImpl {
             Gio.DBus.system,
             `org.freedesktop.UPower`,
             `/org/freedesktop/UPower`,
-            (...[, error]) => {
+            (proxy, error) => {
                 if (error) {
-                    this._logError(error);
+                    logError(`Failed to connect to the ${proxy.g_interface_name} D-Bus interface`, error);
                 }
             }
         );
@@ -87,10 +88,6 @@ class ExtensionImpl {
         } else {
             this._brightnessProxy.Brightness = this._preferences.brightnessOnAc;
         }
-    }
-
-    _logError(error) {
-        console.error(`${Extension.uuid}:`, error);
     }
 }
 

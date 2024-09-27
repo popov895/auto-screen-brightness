@@ -5,10 +5,7 @@ const { Adw, GObject, Gtk } = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const { Preferences } = Extension.imports.lib.preferences;
-
-const _ = (text, context) => {
-    return context ? ExtensionUtils.pgettext(context, text) : ExtensionUtils.gettext(text);
-};
+const { _ } = Extension.imports.lib.utils;
 
 var init = () => {
     ExtensionUtils.initTranslations(Extension.uuid);
