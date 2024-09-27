@@ -4,12 +4,9 @@ import Adw from 'gi://Adw';
 import GObject from 'gi://GObject';
 import Gtk from 'gi://Gtk';
 
-import { ExtensionPreferences, gettext, pgettext  } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import { Preferences } from './lib/preferences.js';
-
-const _ = (text, context) => {
-    return context ? pgettext(context, text) : gettext(text);
-};
+import { _ } from './lib/utils.js';
 
 export default class extends ExtensionPreferences {
     fillPreferencesWindow(window) {
