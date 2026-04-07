@@ -1,15 +1,13 @@
 'use strict';
 
 import Gio from 'gi://Gio';
-import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
+import { brightnessManager } from 'resource:///org/gnome/shell/ui/main.js';
+import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { Preferences } from './lib/preferences.js';
-import { logError } from './lib/utils.js';
 
-const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(
-    loadInterfaceXML(`org.gnome.SettingsDaemon.Power.Screen`)
-);
+import { logError } from './lib/utils.js';
 
 const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(
     loadInterfaceXML(`org.freedesktop.UPower`)
@@ -25,23 +23,6 @@ export default class extends Extension {
         }, this);
         this._preferences.connectObject(`notify::brightnessOnBattery`, () => {
             if (this._powerManagerProxy?.OnBattery === true) {
-                this._updateScreenBrightness();
-            }
-        }, this);
-
-        this._brightnessProxy = new BrightnessProxy(
-            Gio.DBus.session,
-            `org.gnome.SettingsDaemon.Power`,
-            `/org/gnome/SettingsDaemon/Power`,
-            (proxy, error) => {
-                if (error) {
-                    logError(`Failed to connect to the ${proxy.g_interface_name} D-Bus interface`, error);
-                }
-            }
-        );
-        this._brightnessProxy.connectObject(`g-properties-changed`, (...[, properties]) => {
-            if (properties.lookup_value(`Brightness`, null) !== null) {
-                this._brightnessProxy.disconnectObject(this);
                 this._updateScreenBrightness();
             }
         }, this);
@@ -69,23 +50,26 @@ export default class extends Extension {
         this._powerManagerProxy.disconnectObject(this);
         delete this._powerManagerProxy;
 
-        this._brightnessProxy.disconnectObject(this);
-        delete this._brightnessProxy;
-
         this._preferences.disconnectObject(this);
         this._preferences.destroy();
         delete this._preferences;
     }
 
     _updateScreenBrightness() {
-        if (this._brightnessProxy.Brightness === null || this._powerManagerProxy.OnBattery === null) {
+        if (this._powerManagerProxy.OnBattery === null) {
             return;
         }
 
+        let targetBrightness;
         if (this._powerManagerProxy.OnBattery) {
-            this._brightnessProxy.Brightness = this._preferences.brightnessOnBattery;
+            targetBrightness = this._preferences.brightnessOnBattery;
         } else {
-            this._brightnessProxy.Brightness = this._preferences.brightnessOnAc;
+            targetBrightness = this._preferences.brightnessOnAc;
+        }
+
+        const targetScale = targetBrightness / 100;
+        for (const scale of brightnessManager.scales) {
+            scale.value = targetScale;
         }
     }
 }
